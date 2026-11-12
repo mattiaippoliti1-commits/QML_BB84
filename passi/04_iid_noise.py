@@ -26,7 +26,7 @@ def simula(eta, q, N=100_000, seed=0):
     bob_bases = rng.integers(0, 2, N)
     bob_bits  = np.where(bob_bases == base_inviata, bit_ricevuto, rng.integers(0, 2, N))
 
-    # --- Sifting ---
+    # --- Sifting ---  
     sift = (alice_bases == bob_bases)
     return (alice_bits[sift] != bob_bits[sift]).mean()
 
@@ -38,3 +38,6 @@ def teoria(eta, q):
 print(" eta     q    QBER sim   teoria")
 for eta, q in [(0, 0), (0, 0.025), (0, 0.05), (0.1, 0), (0.1, 0.05), (1, 0.05)]:
     print(f"{eta:4.1f} {q:6.3f}    {simula(eta, q):.4f}   {teoria(eta, q):.4f}")
+
+# q = 0.05 significa che il canale inverte il bit con probabilità 5% (i.i.d.)
+# con q = 0 abbiamo il caso senza rumore, già visto nel passo precedente

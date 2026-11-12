@@ -25,7 +25,7 @@ def simula(eta, q_per_slot, N, rng):
     bit_inviato  = np.where(intercettato, eve_bits,  alice_bits)
     disturbato   = rng.random(N) < q_per_slot      # confronto slot per slot
     bit_ricevuto = bit_inviato ^ disturbato
-    bob_bases = rng.integers(0, 2, N)
+    bob_bases = rng.integers(0, 2, N)   
     bob_bits  = np.where(bob_bases == base_inviata, bit_ricevuto, rng.integers(0, 2, N))
     sift = (alice_bases == bob_bases)
     posizioni = np.flatnonzero(sift)               # slot dei bit tenuti
