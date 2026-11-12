@@ -22,6 +22,7 @@ key_bob   = bob_bits[same_basis]
 print("basi Alice:", alice_bases)
 print("basi Bob:  ", bob_bases)
 print("bit tenuti:", same_basis.sum(), "su", N)
+print("probabilità: ", same_basis.sum() / N * 100, "%")
 print("errori nella chiave:", (key_alice != key_bob).sum())
 
 # Calcolo dei bit scartati
