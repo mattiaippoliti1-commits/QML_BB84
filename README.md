@@ -1,25 +1,72 @@
-# Fase 1 — Simulatore BB84
+# BB84 + QML: detecting intercept-resend attacks
 
-Codice scritto passo per passo da Mattia nel repository `bb84_qml` (il pacchetto zip iniziale `bb84sim` è stato abbandonato a favore di questa versione).
+Simulation of the BB84 quantum key distribution protocol with an
+intercept-resend eavesdropper, used to compare a classical QBER-threshold
+detector with a Quantum Machine Learning classifier.
 
-## Struttura
-- `passi/01…08_*.py`: percorso didattico (BB84 base, Eve totale, Eve parziale f, rumore i.i.d., rumore a raffiche Gilbert-Elliott, campione pubblico, Qiskit).
-- `src/bb84.py`: `simula_sessione(N, f, q, n_pub, rng)` → (`Pubblico`, `Nascosto`); `genera_sessioni(...)` con `SeedSequence.spawn`; `qber_atteso(f, q)`.
-- `tests/test_bb84.py`: 23 test pytest, tutti superati.
-- Ambiente: venv `.qml` con Python 3.13.2, qiskit 2.6.2, qiskit-aer 0.18.2.
+**Research question.** Can a QML model detect an attack on a quantum key
+distribution session better than a threshold on the quantum bit error rate
+(QBER), at the same false-alarm rate?
 
-## Scelte di modellazione
-- Notazione della roadmap: f = frazione di qubit intercettati, q = probabilità di inversione del bit nel canale.
-- Rumore applicato dopo Eve, indipendente dalla base (equivale a una porta Y con probabilità q). QBER atteso = q + f(1−2q)/4.
-- `q` può essere scalare (i.i.d.) o un array per slot (non i.i.d.): il canale Gilbert-Elliott della Fase 2 si collega senza modificare `bb84.py`.
-- Il rivelatore vede solo `Pubblico` (posizioni, basi, errori di n_pub bit, n_sifted); `Nascosto` è ground truth e non deve mai diventare una feature.
-- Sessione tipica: N = 4000 impulsi → ~2000 sifted → n_pub = 1000.
+University project, Quantum Computing course (6 CFU) — Mattia Ippoliti.
 
-## Validazione
-- Numpy: QBER coincide con la teoria entro 5σ su una griglia di valori di q e f; sifting ≈ ½; riproducibilità con seed.
-- Qiskit (passo 8, AerSimulator): probabilità a singolo qubit corrette; QBER di sessione entro 5σ dalla teoria; negli slot deterministici gli esiti di Bob coincidono al 100% con la previsione.
+## Setup
 
-## Lezioni metodologiche emerse
-- Stesso seed tra le esecuzioni → fluttuazioni correlate: train e test dovranno usare seed principali diversi.
-- Separazione ≈ (f/4) / √(q(1−q)/n): con f = 0,02 e n = 1000 è circa 1σ (quasi indistinguibile); gli scenari utili stanno intorno a 1–3σ.
-- Canale i.i.d. + Eve uniforme: il QBER è statistica sufficiente, quindi la soglia è già ottima (Neyman-Pearson). Il possibile vantaggio sta nel canale a raffiche.
+Requires Python 3.13.
+
+```bash
+python3 -m venv .qml
+source .qml/bin/activate
+pip install -r requirements.txt
+```
+
+## Usage
+
+All commands are run from the repository root.
+
+```bash
+python3 -m pytest                      # run the whole test suite
+python3 -m passi.12_ge_channel_session # run a step-by-step script (no .py)
+```
+
+## Repository structure
+
+```
+src/
+  bb84.py       BB84 simulator: Alice, Eve (intercept-resend), channel, Bob,
+                sifting, public sample
+  channels.py   channel models: i.i.d. and Gilbert-Elliott (burst noise)
+tests/          pytest test suite
+passi/          step-by-step scripts that build and check the simulator
+```
+
+## Model
+
+**Session.** Alice sends `N` qubits. Eve intercepts each one with
+probability `f` and measures it in a random basis. The channel then flips
+each bit with probability `q_t`. After sifting, Alice and Bob compare a public
+sample of `n_pub` bits.
+
+**Public vs hidden data.** Each simulated session returns two objects:
+
+- `Pubblico`: what Alice and Bob reveal (positions, bases, errors of the
+  public sample). It is the **only** input a detector may use.
+- `Nascosto`: simulation ground truth (intercepted qubits, all sifted errors,
+  channel states). Used for tests and analysis only, never as a feature.
+
+**Channel models.** Both produce a per-slot flip probability `q_t`:
+
+- *i.i.d.*: `q_t = q` for every slot.
+- *Gilbert-Elliott*: a two-state Markov chain (good state G, bad state B)
+  producing bursts of errors. It is parametrised by the mean QBER `q̄`, the
+  fraction of time in B `π_B`, the error rate in G `e_G` and the mean burst
+  length `L_B`, so that it can be calibrated to the **same mean QBER** as the
+  i.i.d. channel: the two channels differ only in how errors are arranged.
+
+**Expected QBER** with attack fraction `f`: `q̄ + f(1 − 2q̄)/4`.
+
+## Reproducibility
+
+Every session gets its own random generator, derived from a master seed with
+`numpy.random.SeedSequence.spawn`. The same seed always gives the same
+sessions; training and test data must use different master seeds.

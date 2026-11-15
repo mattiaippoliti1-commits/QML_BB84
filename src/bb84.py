@@ -102,8 +102,6 @@ def qber_atteso(f, q):
     """QBER teorico: (1-f)·q + f·[½·q + ½·½] = q + f(1-2q)/4."""
     return q + f * (1 - 2 * q) / 4
 
-# genera_sessioni_canale: come genera_sessioni, ma il rumore viene da un modello di canale.
-
 def genera_sessioni_canale(n_sessioni, N, f, canale, n_pub, seed):
     """
     Come genera_sessioni, ma il rumore viene da un modello di canale.
@@ -127,8 +125,12 @@ def genera_sessioni_canale(n_sessioni, N, f, canale, n_pub, seed):
 # Nascosto: contiene il ground truth della simulazione, non deve mai essere usato come feature.
 @dataclass
 class Nascosto:
-    f: float
-    intercettato: np.ndarray
-    sift_pos: np.ndarray
-    sift_errori: np.ndarray
-    stati_canale: np.ndarray | None = None   # NUOVO: stati G/B (None per il canale i.i.d.)
+    f: float                   # parametro dell'attacco usato
+    intercettato: np.ndarray   # quali slot Eve ha intercettato
+    sift_pos: np.ndarray       # tutti gli slot tenuti dopo il sifting
+    sift_errori: np.ndarray    # errori su TUTTI i bit tenuti
+    stati_canale: np.ndarray | None = None   # stati G/B del canale (None se i.i.d.)
+
+    @property
+    def qber_vero(self) -> float:
+        return float(self.sift_errori.mean())
