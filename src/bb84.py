@@ -101,3 +101,34 @@ def genera_sessioni(n_sessioni, N, f, q, n_pub, seed):
 def qber_atteso(f, q):
     """QBER teorico: (1-f)·q + f·[½·q + ½·½] = q + f(1-2q)/4."""
     return q + f * (1 - 2 * q) / 4
+
+# genera_sessioni_canale: come genera_sessioni, ma il rumore viene da un modello di canale.
+
+def genera_sessioni_canale(n_sessioni, N, f, canale, n_pub, seed):
+    """
+    Come genera_sessioni, ma il rumore viene da un modello di canale.
+    `canale` è una funzione canale(N, rng) -> (q_t, stati): viene chiamata
+    UNA VOLTA PER SESSIONE, con il generatore di quella sessione, così ogni
+    sessione ha le sue raffiche.
+    """
+    figli = np.random.SeedSequence(seed).spawn(n_sessioni)
+    sessioni = []
+    for s in figli:
+        rng = np.random.default_rng(s)
+        q_t, stati = canale(N, rng)                              # 1. rumore di questa sessione
+        pubblico, nascosto = simula_sessione(N, f, q_t, n_pub, rng)  # 2. protocollo
+        nascosto.stati_canale = stati                            # 3. ground truth del canale
+        sessioni.append((pubblico, nascosto))
+    return sessioni
+
+
+
+
+# Nascosto: contiene il ground truth della simulazione, non deve mai essere usato come feature.
+@dataclass
+class Nascosto:
+    f: float
+    intercettato: np.ndarray
+    sift_pos: np.ndarray
+    sift_errori: np.ndarray
+    stati_canale: np.ndarray | None = None   # NUOVO: stati G/B (None per il canale i.i.d.)

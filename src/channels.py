@@ -28,3 +28,8 @@ def canale_gilbert_elliott(N, q_medio, pi_B, e_G, L_B, rng):
     stati = genera_stati(N, a, b, pi_B, rng)
     q_t = np.where(stati, e_B, e_G)
     return q_t, stati
+
+def canale_iid(N, q, rng):
+    """Canale i.i.d.: stessa probabilità di errore q per tutti gli slot."""
+    q_t = np.full(N, q)   # array di N valori tutti uguali a q
+    return q_t, None      # nessuno stato nascosto
