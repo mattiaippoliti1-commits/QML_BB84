@@ -9,8 +9,11 @@ import numpy as np
 import pytest
 
 from src.bb84 import genera_sessioni, genera_sessioni_canale, qber_atteso
-from src.channels import (canale_gilbert_elliott, canale_iid, genera_stati,
-                          parametri_ge)
+# from src.channels import (canale_gilbert_elliott, canale_iid, genera_stati,
+#                           parametri_ge)
+
+from src.channels import (canale_ge_variabile, canale_gilbert_elliott, canale_iid,
+                          canale_iid_variabile, genera_stati, parametri_ge)
 
 # Parametri di riferimento: quelli dell'esercizio del passo 2.1
 Q, PI_B, E_G, L_B = 0.03, 0.10, 0.005, 40
@@ -115,7 +118,7 @@ def test_stati_riproducibili():
 # ---------------------------------------------------------------------------
 
 def test_canale_iid():
-    q_t, stati = canale_iid(N, Q, np.random.default_rng(0))
+    q_t, stati, _ = canale_iid(N, Q, np.random.default_rng(0))
     assert q_t.shape == (N,) and np.all(q_t == Q)
     assert stati is None
 
@@ -123,14 +126,14 @@ def test_canale_iid():
 def test_canale_ge_valori_di_q():
     """q_t vale e_B negli slot in B ed e_G negli slot in G, nient'altro."""
     _, _, e_B = parametri_ge(Q, PI_B, E_G, L_B)
-    q_t, stati = canale_gilbert_elliott(N, Q, PI_B, E_G, L_B, np.random.default_rng(0))
+    q_t, stati, _ = canale_gilbert_elliott(N, Q, PI_B, E_G, L_B, np.random.default_rng(0))
     assert np.all(q_t[stati] == e_B)
     assert np.all(q_t[~stati] == E_G)
 
 
 def test_ge_degenere_diventa_iid():
     """Se e_G = q_medio allora anche e_B = q_medio: il canale GE è i.i.d."""
-    q_t, _ = canale_gilbert_elliott(N, Q, PI_B, Q, L_B, np.random.default_rng(0))
+    q_t, _, _ = canale_gilbert_elliott(N, Q, PI_B, Q, L_B, np.random.default_rng(0))
     assert np.allclose(q_t, Q)
 
 
@@ -182,3 +185,48 @@ def test_iid_compatibile_con_fase_1():
         assert np.array_equal(p1.pos, p2.pos)
         assert np.array_equal(p1.errori, p2.errori)
         assert n2.stati_canale is None
+
+# ---------------------------------------------------------------------------
+# 5. Rumore variabile da sessione a sessione
+# ---------------------------------------------------------------------------
+Q_MIN, Q_MAX, RAPPORTO_EG = 0.01, 0.05, 1 / 6
+
+
+def canale_iid_var(N, rng):
+    return canale_iid_variabile(N, Q_MIN, Q_MAX, rng)
+
+
+def canale_ge_var(N, rng):
+    return canale_ge_variabile(N, Q_MIN, Q_MAX, PI_B, RAPPORTO_EG, L_B, rng)
+
+
+def test_q_variabile_uniforme_nell_intervallo():
+    """q_medio cade in [Q_MIN, Q_MAX] e la sua media è il centro dell'intervallo."""
+    rng = np.random.default_rng(5)
+    q = np.array([canale_iid_variabile(10, Q_MIN, Q_MAX, rng)[2] for _ in range(20_000)])
+    assert q.min() >= Q_MIN and q.max() <= Q_MAX
+    sigma = (Q_MAX - Q_MIN) / np.sqrt(12) / np.sqrt(q.size)  # dev. std della media
+    assert abs(q.mean() - (Q_MIN + Q_MAX) / 2) < 5 * sigma
+
+
+def test_ge_variabile_mantiene_la_forma():
+    """e_G è sempre q_medio/6, e e_B resta una probabilità sensata (<= 0.5)."""
+    rng = np.random.default_rng(6)
+    for _ in range(50):
+        q_t, stati, q = canale_ge_variabile(N, Q_MIN, Q_MAX, PI_B, RAPPORTO_EG, L_B, rng)
+        assert np.allclose(q_t[~stati], q * RAPPORTO_EG)
+        assert np.all(q_t <= 0.5)
+
+
+def test_ge_variabile_coincide_con_il_fisso_a_3_percento():
+    """Con q_medio = 3% l'opzione B dà e_G = 0.5%: lo stesso canale di prima."""
+    assert 0.03 * RAPPORTO_EG == pytest.approx(E_G)
+
+
+@pytest.mark.parametrize("canale", [canale_iid_var, canale_ge_var])
+def test_stesso_rumore_sotto_H0_e_H1(canale):
+    """Con lo stesso seed, H0 e H1 ricevono ESATTAMENTE gli stessi q_medio:
+    il rumore non può tradire la presenza di Eve."""
+    h0 = genera_sessioni_canale(50, N, 0.0, canale, N_PUB, seed=31)
+    h1 = genera_sessioni_canale(50, N, 0.10, canale, N_PUB, seed=31)
+    assert [n.q_medio for _, n in h0] == [n.q_medio for _, n in h1]

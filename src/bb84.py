@@ -102,23 +102,37 @@ def qber_atteso(f, q):
     """QBER teorico: (1-f)·q + f·[½·q + ½·½] = q + f(1-2q)/4."""
     return q + f * (1 - 2 * q) / 4
 
+# DEPRECATA: la nuova versione di genera_sessioni_canale restituisce anche q_medio
+# def genera_sessioni_canale(n_sessioni, N, f, canale, n_pub, seed):
+#     """
+#     Come genera_sessioni, ma il rumore viene da un modello di canale.
+#     `canale` è una funzione canale(N, rng) -> (q_t, stati): viene chiamata
+#     UNA VOLTA PER SESSIONE, con il generatore di quella sessione, così ogni
+#     sessione ha le sue raffiche.
+#     """
+#     figli = np.random.SeedSequence(seed).spawn(n_sessioni)
+#     sessioni = []
+#     for s in figli:
+#         rng = np.random.default_rng(s)
+#         q_t, stati = canale(N, rng)                              # 1. rumore di questa sessione
+#         pubblico, nascosto = simula_sessione(N, f, q_t, n_pub, rng)  # 2. protocollo
+#         nascosto.stati_canale = stati                            # 3. ground truth del canale
+#         sessioni.append((pubblico, nascosto))
+#     return sessioni
+
+
 def genera_sessioni_canale(n_sessioni, N, f, canale, n_pub, seed):
-    """
-    Come genera_sessioni, ma il rumore viene da un modello di canale.
-    `canale` è una funzione canale(N, rng) -> (q_t, stati): viene chiamata
-    UNA VOLTA PER SESSIONE, con il generatore di quella sessione, così ogni
-    sessione ha le sue raffiche.
-    """
+    """..."""
     figli = np.random.SeedSequence(seed).spawn(n_sessioni)
     sessioni = []
     for s in figli:
         rng = np.random.default_rng(s)
-        q_t, stati = canale(N, rng)                              # 1. rumore di questa sessione
-        pubblico, nascosto = simula_sessione(N, f, q_t, n_pub, rng)  # 2. protocollo
-        nascosto.stati_canale = stati                            # 3. ground truth del canale
+        q_t, stati, q_medio = canale(N, rng)          
+        pubblico, nascosto = simula_sessione(N, f, q_t, n_pub, rng)
+        nascosto.stati_canale = stati
+        nascosto.q_medio = q_medio                            
         sessioni.append((pubblico, nascosto))
     return sessioni
-
 
 
 
@@ -130,6 +144,7 @@ class Nascosto:
     sift_pos: np.ndarray       # tutti gli slot tenuti dopo il sifting
     sift_errori: np.ndarray    # errori su TUTTI i bit tenuti
     stati_canale: np.ndarray | None = None   # stati G/B del canale (None se i.i.d.)
+    q_medio: float | None = None   # QBER medio del canale (None se i.i.d.)
 
     @property
     def qber_vero(self) -> float:

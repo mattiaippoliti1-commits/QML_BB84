@@ -7,7 +7,7 @@ from src.channels import canale_gilbert_elliott
 # (quindi b = 1/40 = 0.025). La durata media degli intervalli in G sarà circa 1/a.
 
 rng = np.random.default_rng(42)
-q_t, stati = canale_gilbert_elliott(4000, 0.03, 0.10, 0.005, 40, rng)
+q_t, stati, _ = canale_gilbert_elliott(4000, 0.03, 0.10, 0.005, 40, rng)
 
 # Lancio della moneta truccata slot per slot: errore con probabilità q_t
 errori = rng.random(4000) < q_t
