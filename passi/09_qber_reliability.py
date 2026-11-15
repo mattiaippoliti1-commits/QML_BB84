@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from bb84 import qber_atteso, simula_sessione  # noqa: E402
 
 # --- Parametri dell'esperimento ---
-N_SESSIONI = 100_000
+N_SESSIONI = 1_000_000
 N, N_PUB = 4000, 1000        # impulsi per sessione, bit confrontati
 Q = 0.03                     # rumore del canale (i.i.d.)
 F = 0.05                     # frazione intercettata quando Eve c'è
