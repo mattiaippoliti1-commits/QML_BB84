@@ -1,4 +1,4 @@
-# Fase 1 — Simulatore BB84 (completata il 2026-11-12)
+# Fase 1 — Simulatore BB84
 
 Codice scritto passo per passo da Mattia nel repository `bb84_qml` (il pacchetto zip iniziale `bb84sim` è stato abbandonato a favore di questa versione).
 
