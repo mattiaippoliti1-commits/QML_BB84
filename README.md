@@ -8,8 +8,6 @@ detector with a Quantum Machine Learning classifier.
 distribution session better than a threshold on the quantum bit error rate
 (QBER), at the same false-alarm rate?
 
-University project, Quantum Computing course (6 CFU) — Mattia Ippoliti.
-
 ## Setup
 
 Requires Python 3.13.
