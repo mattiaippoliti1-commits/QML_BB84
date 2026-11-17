@@ -1,0 +1,36 @@
+# Griglia degli scenari del progetto.
+# Ogni scenario è una combinazione (configurazione di rumore, f, n).
+# Modificare QUI i valori, non nel codice: gli script leggono questo file.
+
+# Frazione di qubit intercettati da Eve (H1)
+f: [0.02, 0.05, 0.10, 0.20]
+
+# Numero di bit confrontati pubblicamente
+n: [500, 1000, 5000]
+
+# Impulsi per sessione: N = rapporto_N_su_n * n
+# (circa 1/2 sopravvive al sifting, metà di questi va nel campione pubblico)
+rapporto_N_su_n: 4
+
+# Le quattro configurazioni di rumore
+rumore: [iid_fisso, ge_fisso, iid_variabile, ge_variabile]
+
+# Parametri del rumore
+q_fisso: 0.03        # QBER di fondo nelle varianti "fisso"
+q_min: 0.01          # intervallo del QBER di fondo nelle varianti "variabile"
+q_max: 0.05          #   (estratto uniformemente, una volta per sessione)
+ge:
+  pi_B: 0.10         # frazione di tempo nello stato cattivo
+  L_B: 40            # durata media di una raffica, in slot
+  e_G_a_q_fisso: 0.005  # errore nello stato buono quando q = q_fisso;
+                        # negli altri casi e_G = q * (e_G_a_q_fisso / q_fisso)
+
+# Valutazione della soglia sul QBER
+valutazione:
+  fpr: [0.01, 0.05]          # tassi di falso allarme considerati
+  fpr_classificazione: 0.05  # quello usato per dire facile/difficile/impossibile
+  tpr_impossibile: 0.15      # TPR <= questo valore: impossibile per la soglia
+  tpr_facile: 0.90           # TPR >= questo valore: facile per la soglia
+  sessioni_h0: 4000          # per stimare la soglia (servono tante code per FPR 1%)
+  sessioni_h1: 2000          # per stimare il TPR
+  seed: 2026
